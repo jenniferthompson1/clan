@@ -1,0 +1,546 @@
+/*
+
+Do file to write code to do Hayes-Moulton style cluster analysis
+
+Stephen Nash
+Created: 15 May 2019
+Updated: 30 October 2019
+Version: 0.6 (post-beta release)
+
+SYNTAX
+
+clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string) [ STRata(varname) plot ]
+
+	COMPULSORY OPTIONS
+	arms must be coded 0/1, only two arms permitted at the moment
+	strata must be numbered categorical (but any number of levels)
+	cluster must be numeric and "sensible" - it's used in the collapse, and that could cause problems...
+	effect specifies the type of measure of effect:
+		rr = RISK RATIO (binary outcome)
+		rd = RISK DIFFERENCE (binary outcome)
+		rater = RATE RATIO (count data)
+		rated = RATE DIFFERENCE (count data)
+		mean = DIFFERENCE OF MEANS (continuous outcome)
+
+	OPTIONAL OPTIONS
+	Level(#) Sets the width of the CI
+	STRata(varname) - Only one stratification factor is currently allowed, but there's no other restrictions (maybe there should be a limit of the number of strata?)
+	FUPtime - Follow-up time - required for count outcomes (rater, rated)
+	plot - Produces a plot of cluster-level summaries
+
+*/
+
+	cap program drop clan
+	prog define clan , eclass
+		version 14.2
+		syntax varlist(numeric fv) [if] [in], arm(varname numeric) CLUSter(varname numeric) EFFect(string) [Level(cilevel) STRata(varname numeric) FUPtime(varname numeric) plot]
+		local outcome = word("`varlist'" , 1)
+
+			*************************************
+			**
+			** DATA SECTION
+			**
+			*************************************
+			qui {
+				marksample touse
+				preserve // We're going to change the data - drop rows and create new vars
+				capture keep `if' // Get rid of un-needed obs now
+				capture keep `in'
+				
+				* Sort out the factor variable nightmare
+					cap drop _I*
+					*xi `varlist' , noomit
+
+				* Check no interactions
+				if strmatch("`varlist'" , "*#*") {
+					dis as error "Interactions are not permitted"
+					exit 101
+				}
+				
+
+				** Drop any row with missing data for any covariate, outcome, arm or strata
+				local vlist_no_i_dot = subinstr("`varlist'" , "i." , "" , .)
+					foreach v of varlist `vlist_no_i_dot' `trt' `strata' `cluster' {
+						drop if missing(`v')
+						}
+				}
+
+			*************************************
+			**
+			** SYNTAX SECTION - CHECK THE PARAMETERS and CREATE SOME LOCALS
+			**
+			*************************************
+			qui {
+				tempname adjusted stratified
+
+				
+				if "`effect'"!="rr" & "`effect'"!="rd" & "`effect'"!="rater" & "`effect'"!="rated" & "`effect'"!="mean" {
+					dis as error "Unrecognised effect estimator"
+					exit 198
+					}
+				
+				* Is arm coded 0, 1?
+				tab `arm'
+					if r(r) != 2 {
+						dis as error "There must be exactly two arms"
+						exit 198
+						}
+				levelsof `arm' , local(arm_levs)
+				if "`arm_levs'" != "0 1" {
+						dis as error "Arm must be coded 0/1"
+						exit 198
+						}
+				*
+				* If Posson, must specify follow-up variable
+					if ("`effect'"=="rater" | "`effect'"=="rated") & "`fuptime'"=="" {
+						dis as error "You must specify fuptime to calculate a rate ratio or difference"
+						exit 198
+					}
+				*
+				** Is this an adjusted analysis?
+					if wordcount("`varlist'")>1 scalar `adjusted'=1
+						else if wordcount("`varlist'")==1 scalar `adjusted'=0
+							else {
+								dis as error "varlist required"
+								exit 100
+								}
+				** Is this a stratified analysis
+					scalar `stratified' = 1
+					if "`strata'" == "" scalar `stratified' = 0
+						else local istrata i.`strata'
+
+				** Get a local with the name of the effect measure
+				if `adjusted'==0 & `stratified'==0 { // Unadjusted, unstratified
+					if "`effect'"=="rd" local effmeasure "Risk difference"
+					if "`effect'"=="rr" local effmeasure "Risk ratio"
+					if "`effect'"=="mean" local effmeasure "Mean difference"
+					if "`effect'"=="rated" local effmeasure "Rate difference"
+					if "`effect'"=="rater" local effmeasure "Rate ratio"
+				}
+				else {
+					if "`effect'"=="rd" local effmeasure "Adjusted risk difference"
+					if "`effect'"=="rr" local effmeasure "Adjusted risk ratio"
+					if "`effect'"=="mean" local effmeasure "Adjusted mean difference"
+					if "`effect'"=="rated" local effmeasure "Adjusted rate difference"
+					if "`effect'"=="rater" local effmeasure "Adjusted rate ratio"
+				}
+
+			} // end quitely
+
+			*************************************
+			**
+			** COMMON SECTION - Common to all analyses
+			**
+			*************************************
+			qui {
+				tempname obs numstrata numstrat_minusone uppertail c0 c1 c df result0 result1
+				*
+				* Dummy variable so we can count observations
+					gen byte `obs' = 1
+				*
+				* Number of clusters
+					tab `cluster' if `arm' == 0
+						scalar `c0' = r(r)
+					tab `cluster' if `arm' == 1
+						scalar `c1' = r(r)
+					scalar `c' = `c0' + `c1'
+					local num_obs = `c'
+
+				* Number of strata
+				if `stratified'==1 {
+					tab `strata'
+					scalar `numstrata' = r(r)
+					scalar `numstrat_minusone' = `numstrata' - 1
+					}
+					else {
+						scalar `numstrata' = 0
+						scalar `numstrat_minusone ' = 0
+						}
+
+				* Count cluster level covariates
+					local num_cluster_covars = 0
+					* Get list of clusters
+					levelsof `cluster' , local(cluster_levels)
+					foreach v in `varlist' {
+						if substr("`v'", 2,1) == "." { // If factor var
+							local num_clv_this_fv = 0
+							local simple_var = substr("`v'" , 3 , . )
+							levelsof `simple_var' , local(var_levels)
+								local num_levs = r(r)
+							foreach j of local var_levels { // Old
+								local total_sd = 0
+								foreach i of local cluster_levels {
+									sum `j'.`simple_var' if `cluster' == `i'
+									local total_sd = `total_sd' + r(Var)
+									} // end i loop
+								levelsof `simple_var' , local(var_levels)
+								if `total_sd' == 0 { // We've found a cluster-level variable
+								noi dis "Got one : `v'"
+									local num_cluster_covars = `num_cluster_covars' + 1
+									local num_clv_this_fv = `num_clv_this_fv' + 1
+								} // end if
+							} // end j loop
+							if `num_clv_this_fv' >= 2 local num_cluster_covars = `num_cluster_covars' - 1
+						} // end Factor variable if substr
+							else { // normal var
+								local total_sd = 0
+								foreach i of local cluster_levels {
+									sum `v' if `cluster'==`i'
+									local total_sd = `total_sd' + r(Var)
+								} // end i loop
+								if `total_sd' == 0 local num_cluster_covars = `num_cluster_covars' + 1
+							} // end else
+					} // end v for loop
+					
+				* Degrees of freedom
+					scalar `df' = `c0' + `c1' - 2 - `num_cluster_covars' - `numstrat_minusone'
+					local dfm = `df'
+
+				** Calculate the upper tail area to use in the calculation of the CI
+					scalar `uppertail' = 0.5 * (100 - `level') / 100
+					
+				} // end qui
+/*
+█████▄░██░██▄░██░░▄███▄░░████▄░██▄░░▄██
+██▄▄█▀░██░███▄██░██▀░▀██░██░██░░▀████▀░
+██░░██░██░██▀███░███████░████▀░░░░██░░░
+█████▀░██░██░░██░██░░░██░██░██░░░░██░░░
+*/
+			*************************************
+			**
+			** RISK SECTION (both ratio and difference)
+			**
+			*************************************
+			qui {
+				if "`effect'"=="rr" | "`effect'"=="rd" {
+					tempname A expected cellcases zero howmanyzeros cprev 
+					tempname prev_lb prev_ub prev0 prev1 logprev logprev0 logprev1
+					tempname beta logbeta beta_lci beta_uci ts pval sd se s0 s1 tvalue s_pooled_log
+					tempname actual_cprev actual_prev0 actual_prev1
+					tempname b V
+
+					* Put effect type into a local for displaying results
+						local efftype Risk
+
+					* GET CLUSTER LEVEL SUMMARIES BY COLLAPSING THE DATA
+					* If adjusted analysis, we need to get expected number from a logistic
+					* regression WITHOUT the treatment arm BEFORE we collapse data
+					if `adjusted'==1 {
+						logistic `varlist' `istrata' 
+						predict `expected' , pr
+						collapse (sum) `outcome' `obs' `expected', by(`cluster' `strata' `arm')
+					}
+						else {
+							collapse (sum) `outcome' `obs' , by(`cluster' `strata' `arm')
+							}
+					
+					* If we'll be taking logs, add 0.5 to all if one cluster prev is zero
+					if "`effect'" == "rr" {
+						bysort `cluster' `strata' `arm' : gen `cellcases'=sum(`outcome')
+						gen byte `zero' = 1 if `cellcases'==0 // Marks cells with zero cases
+						gen `howmanyzeros' = sum(`zero') // Makes a running total of number of cells with zero prev
+						if `howmanyzeros'[_N] > 0.5  { // Look at just the end of the running total
+							replace `outcome' = `outcome' + 0.5 
+							noi dis as text "Warning: at least one cluster has zero prevalence, so 0.5 will be added to every cluster total" 
+						}
+					}
+					*
+					* Calculate cluster prevalences
+					gen `actual_cprev' = `outcome' / `obs' // For graphical display
+						sum `actual_cprev' if `arm' == 0
+							scalar `actual_prev0' = r(mean)
+							scalar `result0' = `actual_prev0'
+						sum `actual_cprev' if `arm' == 1
+							scalar `actual_prev1' = r(mean)
+							scalar `result1' = `actual_prev1'
+					
+					if `adjusted'==0 gen `cprev' = `outcome' / `obs'
+						else if "`effect'"=="rr" gen `cprev' = `outcome' / `expected'
+							else gen `cprev' = (`outcome' - `expected') / `obs'
+					*
+					* Summarise by treatment arm
+						sum `cprev' if `arm' == 0
+							scalar `prev0' = r(mean)
+						sum `cprev' if `arm' == 1
+							scalar `prev1' = r(mean)
+					*
+					* PERFORM ANALYSIS ON THE CLUSTER SUMMARIES
+					if "`effect'" == "rd" { // NATURAL SCALE, RISK DIFFERENCE
+						regress `cprev' i.`arm' `istrata'
+						mat `A' = r(table)
+						mat `b' = e(b)
+						mat `V' = e(V)
+						*scalar `se' = r(se)
+						scalar `se' = `A'[2,2]
+						scalar `beta' = `A'[1,2]
+							 scalar `beta' = `prev1' - `prev0'
+						scalar `beta_lci' = `beta' - (invttail(`df', `uppertail') * `se')
+						scalar `beta_uci' = `beta' + (invttail(`df', `uppertail') * `se')
+						scalar `ts' = sign(`beta')*(`beta' / (`se'))
+						scalar `pval'=2*ttail(`df',`ts')
+						}
+						else { // LOG SCALE, RISK RATIO
+							gen `logprev' = log(`cprev')
+							regress `logprev' i.`arm' `istrata'
+							mat `A' = r(table)
+							mat `b' = e(b)
+							mat `V' = e(V)
+							scalar `se' = `A'[2,2]
+							sum `cprev' if `arm' == 1
+							scalar `prev1' = r(mean)
+							sum `cprev' if `arm' == 0
+							scalar `prev0' = r(mean)
+							scalar `beta' = exp(`A'[1,2])
+								* scalar `beta' = `prev1' / `prev0'
+							scalar `logbeta' = log(`beta')
+							scalar `beta_lci' = exp(`logbeta' - invttail(`df', `uppertail') * `se')
+							scalar `beta_uci' = exp(`logbeta' + invttail(`df', `uppertail') * `se')
+							scalar `ts' = sign(`logbeta')*(`logbeta' / (`se'))
+							scalar `pval'=2*ttail(`df',`ts')
+						}
+					*
+					** RESTORE DATA AND DISPLAY RESULTS **
+					
+					* Plot of cluster prevelances
+					if "`plot'" != "" dotplot `cprev' , over(`arm') center nx(10) xtitle("") xlabel(0 "Arm 0" 1 "Arm 1") xtick( , notick) xmtick( , notick) ytitle("Cluster summaries") legend(off)
+					
+					restore
+					
+					*Return values
+						ereturn post `b' `V' , obs(`num_obs') depname(`outcome') esample(`touse') dof(`dfm')
+						ereturn local depvar "`outcome'"
+						ereturn scalar p = `pval'
+						ereturn scalar ub = `beta_uci'
+						ereturn scalar lb = `beta_lci'
+						if "`effect'" == "rd" ereturn scalar rd = `beta'
+							else ereturn scalar rr = `beta'
+
+				} // end if RR | RD
+			} // end quitely
+
+/*
+████▄░░▄███▄░░██░▄███▄░▄███▄░░▄███▄░░██▄░██
+██░██░██▀░▀██░██░▀█▄▀▀░▀█▄▀▀░██▀░▀██░███▄██
+████▀░██▄░▄██░██░▄▄▀█▄░▄▄▀█▄░██▄░▄██░██▀███
+██░░░░░▀███▀░░██░▀███▀░▀███▀░░▀███▀░░██░░██
+*/
+			*************************************
+			**
+			** POISSON COUNT SECTION
+			**
+			*************************************
+			qui {
+				if "`effect'"=="rater" | "`effect'"=="rated" {
+					tempname expected cellcases zero howmanyzeros 
+					tempname crate rate_lb rate_ub ci_se rate0 rate1 
+					tempname logcrate lograte0 lograte1 beta logbeta beta_lci beta_uci
+					tempname ts pval sd se s0 s1 mu0 mu1 
+					tempname actual_crate actual_rate0 actual_rate1
+					tempname A b V
+
+					* Put effect type into a local for displaying results
+						local efftype Rate
+
+					* GET CLUSTER LEVEL SUMMARIES BY COLLAPSING THE DATA
+					* If adjusted analysis, we need to get expected number from a logistic
+					* regression WITHOUT the treatment arm BEFORE we collapse data
+					if `adjusted'==1 {
+						if `stratified'==1 poisson `varlist' i.`strata' , exp(`fuptime') irr
+							else poisson `varlist' , exp(`fuptime') irr
+						predict `expected' , n
+						collapse (sum) `outcome' `obs' `expected' `fuptime', by(`cluster' `strata' `arm')
+					}
+						else collapse (sum) `outcome' `obs' `fuptime' , by(`cluster' `strata' `arm') 
+					pause
+					*replace know = 0 if commu==1 // Unstar this to test the code below
+					
+					* If we'll be taking logs, add 0.5 to all if one cluster prev is zero
+					if "`effect'" == "rater" {
+						bysort `cluster' `strata' `arm' : gen `cellcases'=sum(`outcome')
+						gen byte `zero' = 1 if `cellcases'==0 // Marks cells with zero cases
+						gen `howmanyzeros' = sum(`zero') // Makes a running total of number of cells with zero prev
+						if `howmanyzeros'[_N] > 0.5 {
+							replace `outcome' = `outcome' + 0.5
+							noi dis as text "Warning: at least one cluster has zero prevalence, so 0.5 will be added to every cluster total" 
+						}
+					}
+					*
+					* Calculate cluster prevalences
+					** Summarise overall and by arm for reporting
+					gen `actual_crate' = `outcome' / `fuptime'
+						sum `actual_crate' if `arm' == 0
+							scalar `actual_rate0' = r(mean)
+							scalar `result0' = `actual_rate0'
+						sum `actual_crate' if `arm' == 1
+							scalar `actual_rate1' = r(mean)
+							scalar `result1' = `actual_rate1'
+
+					if `adjusted'==0 gen `crate' = `outcome' / `fuptime' 
+						else if "`effect'"=="rater" gen `crate' = `outcome' / `expected'
+							else gen `crate' = (`outcome' - `expected') / `fuptime'
+					*
+
+					* Summarise by treatment arm
+						sum `crate' if `arm' == 0
+							scalar `rate0' = r(mean)
+						sum `crate' if `arm' == 1
+							scalar `rate1' = r(mean)
+					*
+					* PERFORM ANALYSIS ON THE CLUSTER SUMMARIES
+					if "`effect'" == "rated" { // NATURAL SCALE, RATE DIFFERENCE
+						regress `crate' i.`arm' `istrata'
+						mat `A' = r(table)
+						mat `b' = e(b)
+						mat `V' = e(V)
+						scalar `se' = `A'[2,2]
+						scalar `beta' = `A'[1,2]
+						scalar `beta_lci' = `beta' - (invttail(`df', `uppertail') * `se')
+						scalar `beta_uci' = `beta' + (invttail(`df', `uppertail') * `se')
+						scalar `ts' = sign(`beta')*(`beta' / (`se'))
+						scalar `pval'=2*ttail(`df',`ts')
+						}
+						else { // LOG SCALE, RATE RATIO
+							gen `logcrate' = log(`crate')
+							regress `logcrate' i.`arm' `istrata'
+							mat `A' = r(table)
+							mat `b' = e(b)
+							mat `V' = e(V)
+							scalar `se' = `A'[2,2]
+
+							sum `logcrate' if `arm' == 1
+							scalar `lograte1' = r(mean)
+							sum `logcrate' if `arm' == 0
+							scalar `lograte0' = r(mean)
+							scalar `logbeta' = `A'[1,2]
+							scalar `beta' = exp(`logbeta')
+							scalar `beta_lci' = exp(`logbeta' - invttail(`df', `uppertail') * `se')
+							scalar `beta_uci' = exp(`logbeta' + invttail(`df', `uppertail') * `se')
+							scalar `ts' = sign(`logbeta')*(`logbeta' / (`se'))
+							scalar `pval'=2*ttail(`df',`ts')
+						}
+					*
+					** RESTORE DATA AND DISPLAY RESULTS **
+						* GRAPHICAL OUTPUT
+						if "`plot'" != "" dotplot `crate' , over(`arm') center nx(10) xtitle("") xlabel(0 "Arm 0" 1 "Arm 1") xtick( , notick) xmtick( , notick) ytitle("Cluster summaries") legend(off)
+
+						restore
+						
+						* RETURN VALUES
+							ereturn post `b' `V' , obs(`num_obs') depname(`outcome') esample(`touse') dof(`dfm')
+							ereturn local depvar "`outcome'"
+							ereturn scalar p = `pval'
+							ereturn scalar ub = `beta_uci'
+							ereturn scalar lb = `beta_lci'
+							if "`effect'"=="rr" ereturn scalar rr = `beta'
+								else ereturn scalar rr = `beta'
+				} // end if RATER | RATED
+			} // end quitely
+					
+					
+					
+
+/*
+██▄░▄██░████░░▄███▄░░██▄░██░▄███▄
+██▀█▀██░██▄░░██▀░▀██░███▄██░▀█▄▀▀
+██░░░██░██▀░░███████░██▀███░▄▄▀█▄
+██░░░██░████░██░░░██░██░░██░▀███▀
+*/
+			*************************************
+			**
+			** CONTINUOUS OUTCOME SECTION
+			** Difference in means
+			**
+			*************************************
+			qui {
+				if "`effect'"=="mean" {
+					tempname expected beta ts pval sd pval se s0 s1 mu0 mu1
+					tempname mn mn0 mn1 beta beta_lci beta_uci ts pval
+					tempname csd mn_lb mn_ub critval 
+					tempname actual_cmean actual_mean0 actual_mean1
+					tempname A b V
+
+					* Put effect type into a local for displaying results
+						local efftype Mean
+
+					* Calc the standard eviation within each cluster, as a constant
+						egen `csd' =sd(`outcome') , by(`cluster')
+					* If adjusted analysis, we need to get expected number from a
+					* regression WITHOUT the treatment arm BEFORE we collapse data
+					if `adjusted'==1 {
+						if `stratified'==1 regress `varlist' i.`strata'
+							else regress `varlist'
+						predict `expected' , xb
+						collapse (sum) `outcome' `obs' `expected' (first) `csd', by(`cluster' `strata' `arm')  // adjusted
+					}
+						else collapse (sum) `outcome' `obs' (first) `csd', by(`cluster' `strata' `arm')  // unadjusted
+					*
+					* Calculate cluster summaries, actual and usign the adjusted residuals
+					gen `actual_cmean' = `outcome' / `obs'
+						sum `actual_cmean' if `arm' == 0
+							scalar `actual_mean0' = r(mean)
+							scalar `result0' = `actual_mean0'
+						sum `actual_mean' if `arm' == 1
+							scalar `actual_mean1' = r(mean)
+							scalar `result1' = `actual_mean1'
+					
+					if `adjusted'==0 gen `mn' = `outcome' / `obs' 
+						else gen `mn' = (`outcome' - `expected') / `obs'
+
+					sum `mn' if `arm' ==0
+						scalar `mn0' = r(mean)
+					sum `mn' if `arm' == 1
+						scalar `mn1' = r(mean)
+
+					regress `mn' i.`arm' `istrata'
+					* 95% CI, p-value
+						mat `A' = r(table)
+						mat `b' = e(b)
+						mat `V' = e(V)
+						scalar `beta' = `A'[1,2]
+						scalar `se' = `A'[2,2]
+					
+						scalar `beta_lci' = `beta' - (invttail(`df', `uppertail')*`se')
+						scalar `beta_uci' = `beta' + (invttail(`df', `uppertail')*`se')
+						scalar `ts' = sign(`beta')*(`beta' / `se')
+						scalar `pval'=2*ttail(`df',`ts')
+					
+					** RESTORE DATA AND DISPLAY RESULTS **
+					
+					* Plot of cluster means
+					if "`plot'" != "" dotplot `mn' , over(`arm') center nx(10) xtitle("") xlabel(0 "Arm 0" 1 "Arm 1") xtick( , notick) xmtick( , notick) ytitle("Cluster summaries") legend(off)
+
+					restore
+					* Return values
+						ereturn post `b' `V' , obs(`num_obs') depname(`outcome') esample(`touse') dof(`dfm')
+						ereturn local depvar "`outcome'"
+						ereturn scalar p = `pval'
+						ereturn scalar ub = `beta_uci'
+						ereturn scalar lb = `beta_lci'
+						ereturn scalar md = `beta'
+				} // end if continuous
+			} // end quitely
+
+	*************************************
+	**
+	** COMMON SECTION
+	**
+	*************************************
+		** COMMON ERETURN VALUES
+			ereturn scalar N_clust = `c'
+			ereturn scalar level = `level'
+			ereturn local cmdline `"`0'"'
+			ereturn local cmd "clan"
+
+		** TEXT OUTPUT FOR ALL OUTCOME TYPES - the program always reaches these lines
+			noi dis as text _n "Number of clusters (total): " as result `c'
+			noi dis as text "Number of clusters (arm 0): " as result `c0'
+			noi dis as text "Number of clusters (arm 1): " as result `c1' _n
+			
+			noi dis as text "`efftype' in arm 0 = " as result `result0'
+			noi dis as text "`efftype' in arm 1 = " as result `result1'
+			noi dis as text "`effmeasure' = " as result `beta'
+			noi dis as text "`level'% CI : " as result "(" `beta_lci' ", " `beta_uci' ")"
+			noi dis as text "p = " as result `pval'
+			noi dis as text "Degrees of freedom: " as result `df'
+end
+
