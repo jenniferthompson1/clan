@@ -5,7 +5,7 @@ Do file to write code to do Hayes-Moulton style cluster analysis
 Stephen Nash
 Created: 15 May 2019
 Updated: 30 October 2019
-Version: 0.6 (post-beta release)
+Version: 0.7 (post-beta release)
 
 SYNTAX
 
