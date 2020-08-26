@@ -122,7 +122,7 @@ of residual values, and hence will not have a direct interpretation.
 {title:Examples}
 
 {pstd}Setup{p_end}
-{phang2}{cmd:. net get xtgeebcv}{p_end}
+{phang2}{cmd:. net get clan}{p_end}
 {phang2}{cmd:. sysuse mkvtrial, clear}{p_end}
 
 {pstd}Analyse trial effect on the knowledge of HIV; estimate risk ratio{p_end}
