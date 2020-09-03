@@ -44,7 +44,8 @@
 {synopt :{opth str:ata(varname)}}variable defining the (single) stratification factor used in the trial{p_end}
 {synopt :{opth fup:time(varname)}}variable describing the follow-up time in trials where the outcome is time-to-event{p_end}
 {synopt :{opt plot}}produce a scatter plot of cluster summaries{p_end}
-{synopt :{opth l:evel(#)}}set confidence level; default is level(95){p_end}
+{synopt: {cmdab:sav:ing(}{it:{help filename}}[{cmd:, replace}]{cmd:)}}save the cluster-level dataset in {it:filename}{cmd:.dta}. {p_end}
+{synopt :{opth l:evel(#)}}set the level for confidence intervals; default is 95%{p_end}
 {synoptline}
 {p 4 6 2}*these options are required{p_end}
 {p 4 6 2}{it:indepvars} may contain factor variables, but cannot contain interactions{p_end}
@@ -112,6 +113,11 @@ when either rate differences or ratios are to be calculated.
 {opt plot} produces a scatter plot of the cluster summaries 
 used to produce the effect measure. For adjusted analyses these wil be summaries 
 of residual values, and hence will not have a direct interpretation.
+
+{phang}
+{cmdab:saving(}{it:{help filename}}[{cmd:, replace}]{cmd:)} saves a dataset with the cluster summaries.
+A new filename is required unless {opt replace} is also specified.
+{opt replace} allows the {it:filename} to be overwritten with new data.
 
 {phang}
 {opt l:evel(#)} set confidence level; default is {cmd:level(95)}
