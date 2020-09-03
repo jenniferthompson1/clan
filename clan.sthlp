@@ -68,7 +68,7 @@
 The method follows a two-step procedure. In the first step, cluster summaries are
 produced. For a binary outcome, these are simple cluster proportions; for a
 continuous outcome, these are cluster means; for a time-to-event outcome these
-are rates. If any independent variables are included, am appropriate regression
+are rates. If any independent variables are included, an appropriate regression
 model (logistic, linear, or poisson) is run {it:without} the arm variable. The
 residuals are then summarised by cluster (and strata, if specified).
 
