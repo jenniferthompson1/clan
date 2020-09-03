@@ -634,32 +634,75 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 
 		** TEXT OUTPUT FOR ALL OUTCOME TYPES - the program always reaches these lines
 		
-/*			noi dis as text _n "Number of clusters (total): " as result `c'
-			noi dis as text "Number of clusters (arm 0): " as result `c0'
-			noi dis as text "Number of clusters (arm 1): " as result `c1' _n
-			
-			noi dis as text "`efftype' in arm 0 = " as result `result0'
-			noi dis as text "`efftype' in arm 1 = " as result `result1'
-			noi dis as text "`effmeasure' = " as result `beta'
-			noi dis as text "`level'% CI : " as result "(" `beta_lci' ", " `beta_uci' ")"
-			noi dis as text "p = " as result `pval'
-			noi dis as text "Degrees of freedom: " as result `df'
-*/			
 			
 		**BLAug20: Try new ouput display:	
-			noi dis as text _n "Cluster-level analysis"						_col(48) as text "Number of obs     = " as result %8.0gc `num_obs'
-			noi dis as text "Number of clusters (total): " as result `c'	_col(48) as text "Obs per cluster:"                                
-			noi dis as text "Number of clusters (arm 0): " as result `c0'	_col(62) as text "min = " as result %8.1gc `clus_siz_min'         
-			noi dis as text "Number of clusters (arm 1): " as result `c1'	_col(62) as text "avg = " as result %8.1gc `clus_siz_avg'          
-			noi dis 														_col(62) as text "max = " as result %8.1gc `clus_siz_max'         			
-			noi dis as text "`efftype' in arm 0 = " as result `result0'
-			noi dis as text "`efftype' in arm 1 = " as result `result1'
+			noi dis as text _n "Number of clusters (total): " as result `c'	_col(48) as text "Number of obs     = " as result %8.0gc `num_obs'
+			noi dis as text "Number of clusters (arm 0): " as result `c0'	_col(48) as text "Obs per cluster:"                                
+			noi dis as text "Number of clusters (arm 1): " as result `c1'	_col(62) as text "min = " as result %8.1gc `clus_siz_min'         
+			noi dis as text 												_col(62) as text "avg = " as result %8.1gc `clus_siz_avg'          
+			noi dis as text													_col(62) as text "max = " as result %8.1gc `clus_siz_max'         			
 			
+			** JT covert BL text version output table to a stata output table
+			
+			tempname Tab
+
+			.`Tab' = ._tab.new, col(6) lmargin(0) 
+
+			// column           1      2     3     4     5     6
+			.`Tab'.width       20    |12     8     10     12    12
+			.`Tab'.titlefmt %12s      .     .     .   %24s	    .
+			.`Tab'.pad          .      2     0     0      3     3
+			.`Tab'.numfmt       .  %9.0g %7.0g %9.4f  %9.0g %9.0g  
+
+			.`Tab'.sep, top
+			.`Tab'.titles  "" "Estimate" "df" "P-val"  `"[`level'% Conf. Interval]"' ""
+			.`Tab'.sep, middle
+
+			*if length("`statistic'")>18 local ab_statistic = substr("`statistic'",1,11)+".."
+			*else local ab_statistic "`statistic'"
+
+			.`Tab'.row `"`efftype' by arm"' /*
+					*/ "" /*
+					*/ "" /*
+					*/ "" /*
+					*/ ""/*
+					*/ ""
+			
+			.`Tab'.row `"0"' /*
+					*/ `result0' /*
+					*/ "" /*
+					*/ "" /*
+					*/ ""/*
+					*/ ""
+					
+			.`Tab'.row `"1"' /*
+					*/ `result1' /*
+					*/ "" /*
+					*/ "" /*
+					*/ ""/*
+					*/ ""
+					
+			.`Tab'.sep, middle
+			
+			.`Tab'.row `"`effabbrev'"' /*
+					*/ `beta' /*
+					*/`df' /*
+					*/ `pval' /*
+					*/ `beta_lci' /*
+					*/ `beta_uci'  
+
+			.`Tab'.sep, bottom
+			
+			/* Comment out BL original output
+			noi dis as text "`efftype' in arm 0 = " as result `result0'
+			noi dis as text "`efftype' in arm 1 = " as result `result1'		
 			noi dis _n as text "{hline 19}{c TT}{hline 55}"
 			noi dis as text %18s "Effect" " {c |} " _col(25)  "Estimate      df     P-val     [95% Conf. Interval]" 
 			noi dis as text "{hline 19}{c +}{hline 55}"	
 			noi dis as text %18s "`effabbrev'" " {c |}   " as result  %9.0g `beta' "   " %5.0g `df' "    " %5.4f `pval' "     " %9.0g `beta_lci'  "  " %9.0g `beta_uci' 
 			noi dis as text "{hline 19}{c BT}{hline 55}"		
+			*/
+			
 			if (`df_penal'>0)  noi dis as text "Note: Adjusted degrees of freedom = " as result `df_noadj' as text " - " as result `df_penal'  //as text " = "as result `df' 
 			
 		
