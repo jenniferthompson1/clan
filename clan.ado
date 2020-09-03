@@ -33,7 +33,7 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 	cap program drop clan
 	prog define clan , eclass
 		version 14.2
-		syntax varlist(numeric fv) [if] [in], arm(varname numeric) CLUSter(varname numeric) EFFect(string) [Level(cilevel) STRata(varname numeric) FUPtime(varname numeric) plot]
+		syntax varlist(numeric fv) [if] [in], arm(varname numeric) CLUSter(varname numeric) EFFect(string) [Level(cilevel) STRata(varname numeric) FUPtime(varname numeric) SAVing(string) plot]
 		local outcome = word("`varlist'" , 1)
 
 			*************************************
