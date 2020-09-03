@@ -121,22 +121,42 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 					scalar `stratified' = 1
 					if "`strata'" == "" scalar `stratified' = 0
 						else local istrata i.`strata'
-
+						
+				** Saving dataset option
+					tokenize "`saving'", parse(",")
+					local savingfile `1'
+					local savingreplace `3'			
+			
 				** Get a local with the name of the effect measure
-				if `adjusted'==0 & `stratified'==0 { // Unadjusted, unstratified
-					if "`effect'"=="rd" local effmeasure "Risk difference"
-					if "`effect'"=="rr" local effmeasure "Risk ratio"
-					if "`effect'"=="mean" local effmeasure "Mean difference"
-					if "`effect'"=="rated" local effmeasure "Rate difference"
-					if "`effect'"=="rater" local effmeasure "Rate ratio"
-				}
-				else {
-					if "`effect'"=="rd" local effmeasure "Adjusted risk difference"
-					if "`effect'"=="rr" local effmeasure "Adjusted risk ratio"
-					if "`effect'"=="mean" local effmeasure "Adjusted mean difference"
-					if "`effect'"=="rated" local effmeasure "Adjusted rate difference"
-					if "`effect'"=="rater" local effmeasure "Adjusted rate ratio"
-				}
+					if `adjusted'==0 & `stratified'==0 { // Unadjusted, unstratified
+						if "`effect'"=="rd" local effmeasure "Risk difference"
+						if "`effect'"=="rr" local effmeasure "Risk ratio"
+						if "`effect'"=="mean" local effmeasure "Mean difference"
+						if "`effect'"=="rated" local effmeasure "Rate difference"
+						if "`effect'"=="rater" local effmeasure "Rate ratio"
+					}
+					else {
+						if "`effect'"=="rd" local effmeasure "Adjusted risk difference"
+						if "`effect'"=="rr" local effmeasure "Adjusted risk ratio"
+						if "`effect'"=="mean" local effmeasure "Adjusted mean difference"
+						if "`effect'"=="rated" local effmeasure "Adjusted rate difference"
+						if "`effect'"=="rater" local effmeasure "Adjusted rate ratio"
+					}
+				** Shorter effect name for output table
+					if `adjusted'==0 & `stratified'==0 { // Unadjusted, unstratified
+						if "`effect'"=="rd" local effabbrev "Risk diff."
+						if "`effect'"=="rr" local effabbrev "Risk ratio"
+						if "`effect'"=="mean" local effabbrev "Mean diff."
+						if "`effect'"=="rated" local effabbrev "Rate diff."
+						if "`effect'"=="rater" local effabbrev "Rate ratio"
+					}
+					else {
+						if "`effect'"=="rd" local effabbrev "Adj. risk diff."
+						if "`effect'"=="rr" local effabbrev "Adj. risk ratio"
+						if "`effect'"=="mean" local effabbrev "Adj. mean diff."
+						if "`effect'"=="rated" local effabbrev "Adj. rate diff."
+						if "`effect'"=="rater" local effabbrev "Adj. rate ratio"
+					}
 
 			} // end quitely
 
