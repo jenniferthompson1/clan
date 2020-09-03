@@ -234,7 +234,8 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 				* Degrees of freedom
 					scalar `df' = `c0' + `c1' - 2 - `num_cluster_covars' - `numstrat_minusone'
 					local dfm = `df'
-
+					local df_noadj = (`c0' + `c1' - 2)   // To display in output
+					local df_penal = (`num_cluster_covars' + `numstrat_minusone')  // To display in output
 				** Calculate the upper tail area to use in the calculation of the CI
 					scalar `uppertail' = 0.5 * (100 - `level') / 100
 					
