@@ -609,14 +609,29 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 	** COMMON SECTION
 	**
 	*************************************
+	
+		** Clean saving dataset
+			qui {
+			if "`saving'" != ""  {
+				preserve
+				use `cldata', clear
+				label data ""
+				compress
+				save "`savingfile'", `savingreplace'
+				restore
+				}	
+			}
+	
 		** COMMON ERETURN VALUES
 			ereturn scalar N_clust = `c'
 			ereturn scalar level = `level'
 			ereturn local cmdline `"`0'"'
 			ereturn local cmd "clan"
+			
 
 		** TEXT OUTPUT FOR ALL OUTCOME TYPES - the program always reaches these lines
-			noi dis as text _n "Number of clusters (total): " as result `c'
+		
+/*			noi dis as text _n "Number of clusters (total): " as result `c'
 			noi dis as text "Number of clusters (arm 0): " as result `c0'
 			noi dis as text "Number of clusters (arm 1): " as result `c1' _n
 			
