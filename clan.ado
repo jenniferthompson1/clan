@@ -4,8 +4,8 @@ Do file to write code to do Hayes-Moulton style cluster analysis
 
 Stephen Nash
 Created: 15 May 2019
-Updated: 14 Aug 2020
-Version: 0.6 (post-beta release)
+Updated: 03 Sep 2020
+Version: 0.8 (finalising before SSC upload)
 
 SYNTAX
 
@@ -648,9 +648,10 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 			noi dis as text "Number of clusters (total): " as result `c'	_col(48) as text "Obs per cluster:"                                
 			noi dis as text "Number of clusters (arm 0): " as result `c0'	_col(62) as text "min = " as result %8.1gc `clus_siz_min'         
 			noi dis as text "Number of clusters (arm 1): " as result `c1'	_col(62) as text "avg = " as result %8.1gc `clus_siz_avg'          
-			noi dis 														_col(62) as text "max = " as result %8.1gc `clus_siz_max'         
-			noi dis as text "Effect measure:  " as result "`effmeasure'"			
-							
+			noi dis 														_col(62) as text "max = " as result %8.1gc `clus_siz_max'         			
+			noi dis as text "`efftype' in arm 0 = " as result `result0'
+			noi dis as text "`efftype' in arm 1 = " as result `result1'
+			
 			noi dis _n as text "{hline 19}{c TT}{hline 55}"
 			noi dis as text %18s "Effect" " {c |} " _col(25)  "Estimate      df     P-val     [95% Conf. Interval]" 
 			noi dis as text "{hline 19}{c +}{hline 55}"	
