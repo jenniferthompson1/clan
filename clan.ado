@@ -214,7 +214,7 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 									} // end i loop
 								levelsof `simple_var' , local(var_levels)
 								if `total_sd' == 0 { // We've found a cluster-level variable
-								noi dis "Got one : `v'"
+								*noi dis "Got one : `v'" 
 									local num_cluster_covars = `num_cluster_covars' + 1
 									local num_clv_this_fv = `num_clv_this_fv' + 1
 								} // end if
