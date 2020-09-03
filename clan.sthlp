@@ -122,6 +122,11 @@ used to produce the effect measure. For adjusted analyses these wil be summaries
 of residual values, and hence will not have a direct interpretation.
 
 {phang}
+{cmdab:saving(}{it:{help filename}}[{cmd:, replace}]{cmd:)} saves a dataset with the cluster summaries.
+A new filename is required unless {opt replace} is also specified.
+{opt replace} allows the {it:filename} to be overwritten with new data.
+
+{phang}
 {opt l:evel(#)} set confidence level; default is {cmd:level(95)}
 
 
