@@ -1,4 +1,4 @@
-{smcl}
+﻿{smcl}
 {* *! version 1.0)}
 {hline}
 {cmd:help clan}{right: ({})}
