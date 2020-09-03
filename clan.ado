@@ -71,8 +71,7 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 			**
 			*************************************
 			qui {
-				tempname adjusted stratified
-
+				tempname adjusted stratified minarm maxarm
 				
 				if "`effect'"!="rr" & "`effect'"!="rd" & "`effect'"!="rater" & "`effect'"!="rated" & "`effect'"!="mean" {
 					dis as error "Unrecognised effect estimator"
@@ -80,18 +79,32 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 					}
 				
 				* Is arm coded 0, 1?
-				tab `arm'
+					tab `arm'
 					if r(r) != 2 {
 						dis as error "There must be exactly two arms"
 						exit 198
 						}
-				levelsof `arm' , local(arm_levs)
-				if "`arm_levs'" != "0 1" {
+					levelsof `arm' , local(arm_levs)
+					if "`arm_levs'" != "0 1" {
 						dis as error "Arm must be coded 0/1"
 						exit 198
 						}
-				*
-				* If Posson, must specify follow-up variable
+				* Arm not constant within cluster
+					bysort `cluster': egen minarm=min(`arm')
+					bysort `cluster': egen maxarm=max(`arm')
+					if minarm!=maxarm {
+							dis as error "Arm variable should not vary within cluster"
+							exit 198
+							}				
+				* If binary or Poisson, outcome must be 0/1
+					if ("`effect'"=="rr" | "`effect'"=="rd" | "`effect'"=="rater" | "`effect'"=="rated") {
+						levelsof `outcome' , local(out_levs)
+						if "`out_levs'" != "0 1" {
+							dis as error "Outcome must be 0/1 with `effect' option"
+							exit 198
+							}
+					}
+				* If Poisson, must specify follow-up variable
 					if ("`effect'"=="rater" | "`effect'"=="rated") & "`fuptime'"=="" {
 						dis as error "You must specify fuptime to calculate a rate ratio or difference"
 						exit 198
