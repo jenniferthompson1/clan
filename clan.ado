@@ -166,7 +166,8 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 			**
 			*************************************
 			qui {
-				tempname obs clussiz numstrata numstrat_minusone uppertail c0 c1 c df result0 result1
+				tempname obs numstrata numstrat_minusone uppertail c0 c1 c df result0 result1
+				tempvar clussiz
 				*
 				* Dummy variable so we can count observations
 					gen byte `obs' = 1
@@ -181,8 +182,8 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 				* Number of observations and cluster size
 					local num_obs = _N
 					local clus_siz_avg = `num_obs' / `num_clus'
-					bysort `cluster': gen clussiz= _N
-					sum clussiz
+					bysort `cluster': gen `clussiz' = _N
+					sum `clussiz'
 					local clus_siz_min= r(min)
 					local clus_siz_max= r(max)
 				* Number of strata
