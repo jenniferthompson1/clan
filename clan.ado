@@ -354,8 +354,8 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 								keep `savevars'
 								rename `obs' obs
 								rename `actual_cprev' clus_prev
-								cap: rename `cprev' resid
-								cap: rename `logprev' logprev
+								cap: rename `cprev' clus_summ
+								cap: rename `logprev' clus_summ
 								save `cldata'
 								}
 															
@@ -487,8 +487,8 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 								keep `savevars' 
 								rename `obs' obs 
 								rename `actual_crate' clus_rate
-								cap: rename `crate' resid
-								cap: rename `logcrate' lograte
+								cap: rename `crate' clus_summ
+								cap: rename `logcrate' clus_summ
 								save `cldata'
 								}	
 										
@@ -588,7 +588,7 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 								keep `savevars'
 								rename `obs' obs 
 								rename `actual_cmean' clus_mean
-								cap: rename `mn' resid
+								cap: rename `mn' clus_summ
 								save `cldata'
 							}	
 					
@@ -617,6 +617,9 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 				preserve
 				use `cldata', clear
 				label data ""
+				foreach var of varlist _all {
+					label var `var' ""
+				}
 				compress
 				save "`savingfile'", `savingreplace'
 				restore
@@ -624,7 +627,6 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 			}
 	
 		** COMMON ERETURN VALUES
-			ereturn scalar N_clust = `c'
 			ereturn scalar level = `level'
 			ereturn local cmdline `"`0'"'
 			ereturn local cmd "clan"
