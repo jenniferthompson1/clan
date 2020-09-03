@@ -2,10 +2,10 @@
 
 Do file to write code to do Hayes-Moulton style cluster analysis
 
-Stephen Nash
+Stephen Nash, Jennifer Thompson, Baptiste Leurent
 Created: 15 May 2019
 Updated: 03 Sep 2020
-Version: 0.8 (finalising before SSC upload)
+Version: 0.9
 
 SYNTAX
 
