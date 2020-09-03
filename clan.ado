@@ -641,5 +641,24 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 			noi dis as text "`level'% CI : " as result "(" `beta_lci' ", " `beta_uci' ")"
 			noi dis as text "p = " as result `pval'
 			noi dis as text "Degrees of freedom: " as result `df'
+*/			
+			
+		**BLAug20: Try new ouput display:	
+			noi dis as text _n "Cluster-level analysis"						_col(48) as text "Number of obs     = " as result %8.0gc `num_obs'
+			noi dis as text "Number of clusters (total): " as result `c'	_col(48) as text "Obs per cluster:"                                
+			noi dis as text "Number of clusters (arm 0): " as result `c0'	_col(62) as text "min = " as result %8.1gc `clus_siz_min'         
+			noi dis as text "Number of clusters (arm 1): " as result `c1'	_col(62) as text "avg = " as result %8.1gc `clus_siz_avg'          
+			noi dis 														_col(62) as text "max = " as result %8.1gc `clus_siz_max'         
+			noi dis as text "Effect measure:  " as result "`effmeasure'"			
+							
+			noi dis _n as text "{hline 19}{c TT}{hline 55}"
+			noi dis as text %18s "Effect" " {c |} " _col(25)  "Estimate      df     P-val     [95% Conf. Interval]" 
+			noi dis as text "{hline 19}{c +}{hline 55}"	
+			noi dis as text %18s "`effabbrev'" " {c |}   " as result  %9.0g `beta' "   " %5.0g `df' "    " %5.4f `pval' "     " %9.0g `beta_lci'  "  " %9.0g `beta_uci' 
+			noi dis as text "{hline 19}{c BT}{hline 55}"		
+			if (`df_penal'>0)  noi dis as text "Note: Adjusted degrees of freedom = " as result `df_noadj' as text " - " as result `df_penal'  //as text " = "as result `df' 
+			
+		
+		
 end
 
