@@ -258,6 +258,7 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 					tempname beta logbeta beta_lci beta_uci ts pval sd se s0 s1 tvalue s_pooled_log
 					tempname actual_cprev actual_prev0 actual_prev1
 					tempname b V
+					tempfile cldata
 
 					* Put effect type into a local for displaying results
 						local efftype Risk
@@ -302,7 +303,7 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 						sum `cprev' if `arm' == 0
 							scalar `prev0' = r(mean)
 						sum `cprev' if `arm' == 1
-							scalar `prev1' = r(mean)
+							scalar `prev1' = r(mean)				
 					*
 					* PERFORM ANALYSIS ON THE CLUSTER SUMMARIES
 					if "`effect'" == "rd" { // NATURAL SCALE, RISK DIFFERENCE
@@ -338,23 +339,35 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 							scalar `ts' = sign(`logbeta')*(`logbeta' / (`se'))
 							scalar `pval'=2*ttail(`df',`ts')
 						}
-					*
-					** RESTORE DATA AND DISPLAY RESULTS **
-					
-					* Plot of cluster prevelances
-					if "`plot'" != "" dotplot `cprev' , over(`arm') center nx(10) xtitle("") xlabel(0 "Arm 0" 1 "Arm 1") xtick( , notick) xmtick( , notick) ytitle("Cluster summaries") legend(off)
-					
-					restore
-					
-					*Return values
-						ereturn post `b' `V' , obs(`num_obs') depname(`outcome') esample(`touse') dof(`dfm')
+						
+					** PLOT AND SAVING OPTIONS
+						
+						* Plot of cluster prevelances
+							if "`plot'" != "" dotplot `cprev' , over(`arm') center nx(10) xtitle("") xlabel(0 "Arm 0" 1 "Arm 1") xtick( , notick) xmtick( , notick) ytitle("Cluster summaries") legend(off)
+						
+						* Saving cluster-level dataset				
+							if "`saving'" != ""  {
+								local savevars `cluster' `arm' `strata' `outcome'  `obs' `actual_cprev'
+								if `adjusted'==1  local savevars `savevars' `cprev'
+								if "`effect'"=="rr" local savevars `savevars' `logprev'
+								keep `savevars'
+								rename `obs' obs
+								rename `actual_cprev' clus_prev
+								cap: rename `cprev' resid
+								cap: rename `logprev' logprev
+								save `cldata'
+								}
+															
+					** RESTORE DATA AND RETURN VALUES
+						restore	
+						ereturn post `b' `V' , obs(`num_clus') depname(`outcome') esample(`touse') dof(`dfm')
 						ereturn local depvar "`outcome'"
 						ereturn scalar p = `pval'
 						ereturn scalar ub = `beta_uci'
 						ereturn scalar lb = `beta_lci'
 						if "`effect'" == "rd" ereturn scalar rd = `beta'
 							else ereturn scalar rr = `beta'
-
+						
 				} // end if RR | RD
 			} // end quitely
 
@@ -377,7 +390,8 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 					tempname ts pval sd se s0 s1 mu0 mu1 
 					tempname actual_crate actual_rate0 actual_rate1
 					tempname A b V
-
+					tempfile cldata
+					
 					* Put effect type into a local for displaying results
 						local efftype Rate
 
@@ -458,21 +472,37 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 							scalar `ts' = sign(`logbeta')*(`logbeta' / (`se'))
 							scalar `pval'=2*ttail(`df',`ts')
 						}
-					*
-					** RESTORE DATA AND DISPLAY RESULTS **
-						* GRAPHICAL OUTPUT
-						if "`plot'" != "" dotplot `crate' , over(`arm') center nx(10) xtitle("") xlabel(0 "Arm 0" 1 "Arm 1") xtick( , notick) xmtick( , notick) ytitle("Cluster summaries") legend(off)
+					
+					** PLOT AND SAVING OPTIONS
+					
+						* Plot
+							if "`plot'" != "" dotplot `crate' , over(`arm') center nx(10) xtitle("") xlabel(0 "Arm 0" 1 "Arm 1") xtick( , notick) xmtick( , notick) ytitle("Cluster summaries") legend(off)
+							
+						* Saving cluster-level dataset	
+							if "`saving'" != ""  {
+								local savevars `cluster' `arm' `strata' `outcome'  `obs' `actual_crate'
+								if `adjusted'==1  local savevars `savevars' `crate'
+								if "`effect'"=="rater" local savevars `savevars' `logcrate'
+								keep `savevars' 
+								rename `obs' obs 
+								rename `actual_crate' clus_rate
+								cap: rename `crate' resid
+								cap: rename `logcrate' lograte
+								save `cldata'
+								}	
+										
+					** RESTORE DATA AND RETURN VALUES
+						restore	
 
-						restore
-						
-						* RETURN VALUES
-							ereturn post `b' `V' , obs(`num_obs') depname(`outcome') esample(`touse') dof(`dfm')
-							ereturn local depvar "`outcome'"
-							ereturn scalar p = `pval'
-							ereturn scalar ub = `beta_uci'
-							ereturn scalar lb = `beta_lci'
-							if "`effect'"=="rr" ereturn scalar rr = `beta'
-								else ereturn scalar rr = `beta'
+						ereturn post `b' `V' , obs(`num_clus') depname(`outcome') esample(`touse') dof(`dfm')
+						ereturn local depvar "`outcome'"
+						ereturn scalar p = `pval'
+						ereturn scalar ub = `beta_uci'
+						ereturn scalar lb = `beta_lci'
+						if "`effect'"=="rr" ereturn scalar rr = `beta'
+							else ereturn scalar rr = `beta'
+								
+								
 				} // end if RATER | RATED
 			} // end quitely
 					
@@ -498,7 +528,8 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 					tempname csd mn_lb mn_ub critval 
 					tempname actual_cmean actual_mean0 actual_mean1
 					tempname A b V
-
+					tempfile cldata
+					
 					* Put effect type into a local for displaying results
 						local efftype Mean
 
@@ -544,19 +575,32 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 						scalar `ts' = sign(`beta')*(`beta' / `se')
 						scalar `pval'=2*ttail(`df',`ts')
 					
-					** RESTORE DATA AND DISPLAY RESULTS **
+					** PLOT AND SAVING OPTIONS
 					
-					* Plot of cluster means
-					if "`plot'" != "" dotplot `mn' , over(`arm') center nx(10) xtitle("") xlabel(0 "Arm 0" 1 "Arm 1") xtick( , notick) xmtick( , notick) ytitle("Cluster summaries") legend(off)
+						* Plot of cluster means
+							if "`plot'" != "" dotplot `mn' , over(`arm') center nx(10) xtitle("") xlabel(0 "Arm 0" 1 "Arm 1") xtick( , notick) xmtick( , notick) ytitle("Cluster summaries") legend(off)
 
-					restore
-					* Return values
-						ereturn post `b' `V' , obs(`num_obs') depname(`outcome') esample(`touse') dof(`dfm')
+						* Saving cluster-level dataset					
+							if "`saving'" != ""  {
+							    local savevars `cluster' `arm' `strata' `outcome'  `obs' `actual_cmean'
+								if `adjusted'==1  local savevars `savevars' `mn'
+								keep `savevars'
+								rename `obs' obs 
+								rename `actual_cmean' clus_mean
+								cap: rename `mn' resid
+								save `cldata'
+							}	
+					
+					** RESTORE DATA AND RETURN VALUES
+						restore	
+
+						ereturn post `b' `V' , obs(`num_clus') depname(`outcome') esample(`touse') dof(`dfm')
 						ereturn local depvar "`outcome'"
 						ereturn scalar p = `pval'
 						ereturn scalar ub = `beta_uci'
 						ereturn scalar lb = `beta_lci'
 						ereturn scalar md = `beta'
+														
 				} // end if continuous
 			} // end quitely
 
