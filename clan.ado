@@ -97,7 +97,7 @@ clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string)
 							exit 198
 							}				
 				* If binary or Poisson, outcome must be 0/1
-					if ("`effect'"=="rr" | "`effect'"=="rd" | "`effect'"=="rater" | "`effect'"=="rated") {
+					if ("`effect'"=="rr" | "`effect'"=="rd" ) {
 						levelsof `outcome' , local(out_levs)
 						if "`out_levs'" != "0 1" {
 							dis as error "Outcome must be 0/1 with `effect' option"
