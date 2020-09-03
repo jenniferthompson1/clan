@@ -58,7 +58,7 @@
 {synopt :{opt rd}}risk difference{p_end}
 {synopt :{opt rater}}rate ratio{p_end}
 {synopt :{opt rated}}rate difference{p_end}
-{synopt :{opt md}}mean difference{p_end}
+{synopt :{opt mean}}mean difference{p_end}
 {synoptline}
 
 {marker description}{...}
