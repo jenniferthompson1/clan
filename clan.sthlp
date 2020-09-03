@@ -1,4 +1,4 @@
-﻿{smcl}
+{smcl}
 {* *! version 1.0)}
 {hline}
 {cmd:help clan}{right: ({})}
@@ -43,6 +43,7 @@
 {synopt :{opth str:ata(varname)}}variable defining the (single) stratification factor used in the trial{p_end}
 {synopt :{opt fup:time(varname)}}variable describing the follow-up time in trials wher ethe outcome is time-to-event{p_end}
 {synopt :{opt plot}}produce a scatter plot of cluster summaries{p_end}
+{synopt: {cmdab:sav:ing(}{it:{help filename}}[{cmd:, replace}]{cmd:)}}save the cluster-level dataset in {it:filename}{cmd:.dta}. {p_end}
 {synopt :{opth l:evel(#)}}set the level for confidence intervals; default is 95%{p_end}
 {synoptline}
 {p 4 6 2}{it:indepvars} may not contain interactions{p_end}
