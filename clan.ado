@@ -483,8 +483,8 @@
 						ereturn scalar p = `pval'
 						ereturn scalar ub = `beta_uci'
 						ereturn scalar lb = `beta_lci'
-						if "`effect'"=="rr" ereturn scalar rr = `beta'
-							else ereturn scalar rr = `beta'
+						if "`effect'"=="rater" ereturn scalar rater = `beta'
+							else ereturn scalar rated = `beta'
 								
 								
 				} // end if RATER | RATED
@@ -581,19 +581,31 @@
 						ereturn post `b' `V' , obs(`num_clus') depname(`outcome') esample(`touse') dof(`dfm')
 						ereturn local depvar "`outcome'"
 						ereturn scalar p = `pval'
-						ereturn scalar ub = `beta_uci'
 						ereturn scalar lb = `beta_lci'
-						ereturn scalar md = `beta'
+						ereturn scalar ub = `beta_uci'
+						ereturn scalar meand = `beta'
 														
 				} // end if continuous
 			} // end quitely
 
+	/*
+
+░▄███▄░░▄███▄░░██▄░▄██░██▄░▄██░░▄███▄░░██▄░██░░
+██▀░▀▀░██▀░▀██░██▀█▀██░██▀█▀██░██▀░▀██░███▄██░░
+██▄░▄▄░██▄░▄██░██░░░██░██░░░██░██▄░▄██░██▀███░░
+░▀███▀░░▀███▀░░██░░░██░██░░░██░░▀███▀░░██░░██░░
+
+▄███▄░████░░▄███▄░████░██░░▄███▄░░██▄░██░▄███▄
+▀█▄▀▀░██▄░░██▀░▀▀░░██░░██░██▀░▀██░███▄██░▀█▄▀▀
+▄▄▀█▄░██▀░░██▄░▄▄░░██░░██░██▄░▄██░██▀███░▄▄▀█▄
+▀███▀░████░░▀███▀░░██░░██░░▀███▀░░██░░██░▀███▀
+
+*/
 	*************************************
 	**
 	** COMMON SECTION
 	**
 	*************************************
-	
 		** Clean saving dataset
 			qui {
 			if "`saving'" != ""  {
