@@ -161,6 +161,12 @@ A new filename is required unless {opt replace} is also specified.
 {synopt:{cmd:e(lb)}}lower bound of confidence interval{p_end}
 {synopt:{cmd:e(ub)}}upper bound of confidence interval{p_end}
 {synopt:{cmd:e(level)}}confidence level{p_end}
+Depending on effect specified:
+{synopt:{cmd:e({rd})}}estimated risk difference{p_end}
+{synopt:{cmd:e({rr})}}estimated risk ratio{p_end}
+{synopt:{cmd:e({rated})}}estimated rate difference{p_end}
+{synopt:{cmd:e({rater})}}estimated rate ratio{p_end}
+{synopt:{cmd:e({mean})}}estimated mean difference{p_end}
 
 {synoptset 20 tabbed}{...}
 {p2col 5 20 24 2: Macros}{p_end}
