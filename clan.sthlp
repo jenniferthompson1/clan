@@ -69,7 +69,7 @@
 {cmd:clan} performs analysis of cluster randomised trials at the cluster level allowing for stratification and adjustment for individual and cluster-level covariates. {it: depvar} gives the outcome, and {it: indepvar} give adjustment covariates.
 
 {pstd}
-If any independent variables are included, an appropriate regression model (logistic, linear, or poisson) is run on the outcome {it:without} the arm variable and  {it:ignoring} clustering. The residuals are then summarised by cluster. If no independent variables are included, the outcome itself is summarise by cluster. For a binary outcome, these summaries are cluster proportions; for a continuous outcome, they are cluster means; for a time-to-event outcome they are rates. For calculation of ratio estimators, the command uses the logarthim of the summaries.
+If any independent variables are included, an appropriate regression model (logistic, linear, or poisson) is run on the outcome with these variables but {it:without} the arm variable and  {it:ignoring} clustering. The residuals are then summarised by cluster. If no independent variables are included, the outcome itself is summarise by cluster. For a binary outcome, these summaries are cluster proportions; for a continuous outcome, they are cluster means; for a time-to-event outcome they are rates. For calculation of ratio estimators, the command uses the logarthim of the summaries.
 
 {pstd}
 These cluster summaries are then compared between the arms in a linear regression adjusting for the stratificaton variable if it is specified.
