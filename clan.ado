@@ -1,36 +1,19 @@
-/*
+*!version 1.0 11Mar2020
 
-Do file to write code to do Hayes-Moulton style cluster analysis
-
-Stephen Nash, Jennifer Thompson, Baptiste Leurent
-Created: 15 May 2019
-Updated: 03 Sep 2020
-Version: 0.9
-
-SYNTAX
-
-clan depvar [indepvars] [if] [in] , arm(varname) CLUSter(varname) EFFect(string) [ STRata(varname) plot ]
-
-	COMPULSORY OPTIONS
-	arms must be coded 0/1, only two arms permitted at the moment
-	strata must be numbered categorical (but any number of levels)
-	cluster must be numeric and "sensible" - it's used in the collapse, and that could cause problems...
-	effect specifies the type of measure of effect:
-		rr = RISK RATIO (binary outcome)
-		rd = RISK DIFFERENCE (binary outcome)
-		rater = RATE RATIO (count data)
-		rated = RATE DIFFERENCE (count data)
-		mean = DIFFERENCE OF MEANS (continuous outcome)
-
-	OPTIONAL OPTIONS
-	Level(#) Sets the width of the CI
-	STRata(varname) - Only one stratification factor is currently allowed, but there's no other restrictions (maybe there should be a limit of the number of strata?)
-	FUPtime - Follow-up time - required for count outcomes (rater, rated)
-	plot - Produces a plot of cluster-level summaries
+/* -----------------------------------------------------------------------------
+** PROGRAM NAME: clan
+** VERSION: 1.0
+** DATE: 11 September 2020
+** -----------------------------------------------------------------------------
+** CREATED BY: STEPHEN NASH, JENNIFER THOMPSON, BAPTISTE LAURENT
+** -----------------------------------------------------------------------------
+** PURPOSE: To conduct cluster level analysis of a cluster randomised trial
+** -----------------------------------------------------------------------------
+** UPDATES: 
+** -----------------------------------------------------------------------------
 
 */
 
-	cap program drop clan
 	prog define clan , eclass
 		version 14.2
 		syntax varlist(numeric fv) [if] [in], arm(varname numeric) CLUSter(varname numeric) EFFect(string) [Level(cilevel) STRata(varname numeric) FUPtime(varname numeric) SAVing(string) plot]
